@@ -1,32 +1,58 @@
-# React + TypeScript + Vite
+# AEM Label Tool
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A small internal utility for frontend developers to inspect and compare react-i18next JSON translation files.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Label Browser `/`
+Upload or paste a flat i18n JSON file and browse all key–value pairs in a searchable table. Click any cell to copy its contents to the clipboard.
 
-## React Compiler
+### AEM ↔ FE Compare `/aem-fe-compare`
+Upload an AEM JSON file (wrapped in a `labels` key) alongside a flat FE JSON file to diff the two. Highlights rows where keys are missing on either side or where values differ.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### FE ↔ FE Compare `/fe-compare`
+Same comparison view for diffing two flat FE JSON files against each other.
 
-## Expanding the Oxlint configuration
+## Row highlight legend (compare pages)
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+| Colour | Meaning |
+|--------|---------|
+| Blue | Key exists on the left but is missing on the right |
+| Red | Key exists on the right but is missing on the left |
+| Yellow | Key exists on both sides but the values differ |
 
+## Supported file formats
+
+**Flat FE JSON** — standard react-i18next structure:
 ```json
 {
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  "common.loading": "Laden...",
+  "common.error": "Fehler"
+}
+```
+
+**AEM JSON** — wrapped in a `labels` key (falls back to flat if the key is absent):
+```json
+{
+  "labels": {
+    "common.loading": "Laden...",
+    "common.error": "Fehler"
   }
 }
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Stack
+
+- React 19 + TypeScript
+- Vite 8
+- Tailwind CSS v4
+- TanStack Router
+- react-dropzone
+- shadcn-style UI components (Radix primitives)
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
