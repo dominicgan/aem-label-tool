@@ -1,56 +1,56 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { FileUploader } from '@/components/FileUploader'
-import { parseAemJson } from '@/lib/parseJson'
 
-type RowStatus = 'both' | 'aem-only' | 'fe-only'
-type ViewFilter = 'all' | 'missing-aem' | 'missing-fe'
+type RowStatus = 'both' | 'left-only' | 'right-only'
+type ViewFilter = 'all' | 'missing-left' | 'missing-right'
 type CopiedKey = string | null
 
 interface CompareRow {
   key: string
-  aemValue: string | null
-  feValue: string | null
+  leftValue: string | null
+  rightValue: string | null
   status: RowStatus
 }
 
 function buildCompareRows(
-  aemData: Record<string, string>,
-  feData: Record<string, string>
+  leftData: Record<string, string>,
+  rightData: Record<string, string>
 ): CompareRow[] {
-  const allKeys = new Set([...Object.keys(aemData), ...Object.keys(feData)])
+  const allKeys = new Set([...Object.keys(leftData), ...Object.keys(rightData)])
   return Array.from(allKeys)
     .sort()
     .map((key) => {
-      const aemValue = aemData[key] ?? null
-      const feValue = feData[key] ?? null
-      const status: RowStatus = aemValue !== null && feValue !== null ? 'both' : aemValue !== null ? 'aem-only' : 'fe-only'
-      return { key, aemValue, feValue, status }
+      const leftValue = leftData[key] ?? null
+      const rightValue = rightData[key] ?? null
+      const status: RowStatus =
+        leftValue !== null && rightValue !== null ? 'both' : leftValue !== null ? 'left-only' : 'right-only'
+      return { key, leftValue, rightValue, status }
     })
 }
 
 const VIEW_OPTIONS: { value: ViewFilter; label: string }[] = [
   { value: 'all', label: 'Show all' },
-  { value: 'missing-fe', label: 'Missing in FE data' },
-  { value: 'missing-aem', label: 'Missing in AEM data' },
+  { value: 'missing-right', label: 'Missing in FE Data 2' },
+  { value: 'missing-left', label: 'Missing in FE Data 1' },
 ]
 
-export function ComparePage() {
-  const [aemData, setAemData] = useState<Record<string, string> | null>(null)
-  const [feData, setFeData] = useState<Record<string, string> | null>(null)
+export function FeComparePage() {
+  const [leftData, setLeftData] = useState<Record<string, string> | null>(null)
+  const [rightData, setRightData] = useState<Record<string, string> | null>(null)
   const [view, setView] = useState<ViewFilter>('all')
   const [copiedCell, setCopiedCell] = useState<CopiedKey>(null)
 
-  const rows = aemData && feData ? buildCompareRows(aemData, feData) : []
+  const rows = leftData && rightData ? buildCompareRows(leftData, rightData) : []
 
   const filtered = rows.filter((row) => {
-    if (view === 'missing-aem') return row.status === 'fe-only'
-    if (view === 'missing-fe') return row.status === 'aem-only'
+    if (view === 'missing-left') return row.status === 'right-only'
+    if (view === 'missing-right') return row.status === 'left-only'
     return true
   })
 
-  const missingInFe = rows.filter((r) => r.status === 'aem-only').length
-  const missingInAem = rows.filter((r) => r.status === 'fe-only').length
+  const missingInRight = rows.filter((r) => r.status === 'left-only').length
+  const missingInLeft = rows.filter((r) => r.status === 'right-only').length
 
   async function copyToClipboard(text: string, cellId: string) {
     await navigator.clipboard.writeText(text)
@@ -62,15 +62,15 @@ export function ComparePage() {
     <div className="py-10 px-4">
       <div className="mx-auto max-w-6xl space-y-8">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">AEM ↔ FE Compare</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">FE ↔ FE Compare</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Upload both JSON files to see which keys are missing on each side.
+            Upload two FE JSON files to see which keys are missing on each side.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
-          <FileUploader title="AEM Data" onLoad={setAemData} parser={parseAemJson} />
-          <FileUploader title="FE Data" onLoad={setFeData} />
+          <FileUploader title="FE Data 1" onLoad={setLeftData} />
+          <FileUploader title="FE Data 2" onLoad={setRightData} />
         </div>
 
         {rows.length > 0 && (
@@ -80,14 +80,14 @@ export function ComparePage() {
               <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400">
                 {rows.length} total keys
               </span>
-              {missingInFe > 0 && (
+              {missingInRight > 0 && (
                 <span className="rounded-full bg-gray-200 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                  {missingInFe} missing in FE
+                  {missingInRight} missing in FE 2
                 </span>
               )}
-              {missingInAem > 0 && (
+              {missingInLeft > 0 && (
                 <span className="rounded-full bg-red-100 dark:bg-red-900/40 px-3 py-1 text-xs font-medium text-red-700 dark:text-red-300">
-                  {missingInAem} missing in AEM
+                  {missingInLeft} missing in FE 1
                 </span>
               )}
             </div>
@@ -101,7 +101,7 @@ export function ComparePage() {
                 >
                   <input
                     type="radio"
-                    name="view"
+                    name="fe-view"
                     value={opt.value}
                     checked={view === opt.value}
                     onChange={() => setView(opt.value)}
@@ -122,13 +122,13 @@ export function ComparePage() {
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       <th className="px-4 py-3 w-1/3">Key</th>
-                      <th className="px-4 py-3 w-1/3">AEM Label</th>
-                      <th className="px-4 py-3 w-1/3">FE Label</th>
+                      <th className="px-4 py-3 w-1/3">FE 1 Label</th>
+                      <th className="px-4 py-3 w-1/3">FE 2 Label</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {filtered.map((row) => (
-                      <CompareRow
+                      <FeCompareRow
                         key={row.key}
                         row={row}
                         copiedCell={copiedCell}
@@ -149,13 +149,13 @@ export function ComparePage() {
           </>
         )}
 
-        {(!aemData || !feData) && (
+        {(!leftData || !rightData) && (
           <p className="text-sm text-gray-400 dark:text-gray-500 text-center">
-            {!aemData && !feData
+            {!leftData && !rightData
               ? 'Upload both files to start comparing.'
-              : !aemData
-              ? 'Waiting for AEM data…'
-              : 'Waiting for FE data…'}
+              : !leftData
+              ? 'Waiting for FE Data 1…'
+              : 'Waiting for FE Data 2…'}
           </p>
         )}
       </div>
@@ -163,30 +163,30 @@ export function ComparePage() {
   )
 }
 
-interface CompareRowProps {
+interface FeCompareRowProps {
   row: CompareRow
   copiedCell: CopiedKey
   onCopy: (text: string, cellId: string) => Promise<void>
 }
 
-function CompareRow({ row, copiedCell, onCopy }: CompareRowProps) {
+function FeCompareRow({ row, copiedCell, onCopy }: FeCompareRowProps) {
   const rowClass =
-    row.status === 'aem-only'
+    row.status === 'left-only'
       ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
-      : row.status === 'fe-only'
+      : row.status === 'right-only'
       ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40'
       : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
 
   return (
     <tr className={`transition-colors ${rowClass}`}>
       <CopyCell text={row.key} cellId={`key-${row.key}`} label="key" copiedCell={copiedCell} onCopy={onCopy} />
-      {row.aemValue !== null ? (
-        <CopyCell text={row.aemValue} cellId={`aem-${row.key}`} label="AEM label" copiedCell={copiedCell} onCopy={onCopy} />
+      {row.leftValue !== null ? (
+        <CopyCell text={row.leftValue} cellId={`left-${row.key}`} label="FE 1 label" copiedCell={copiedCell} onCopy={onCopy} />
       ) : (
         <td className="px-4 py-2.5 font-mono text-gray-300 dark:text-gray-700">—</td>
       )}
-      {row.feValue !== null ? (
-        <CopyCell text={row.feValue} cellId={`fe-${row.key}`} label="FE label" copiedCell={copiedCell} onCopy={onCopy} />
+      {row.rightValue !== null ? (
+        <CopyCell text={row.rightValue} cellId={`right-${row.key}`} label="FE 2 label" copiedCell={copiedCell} onCopy={onCopy} />
       ) : (
         <td className="px-4 py-2.5 font-mono text-gray-300 dark:text-gray-700">—</td>
       )}

@@ -20,6 +20,7 @@ function useDarkMode() {
 const NAV_LINKS = [
   { to: '/', label: 'Label Browser' },
   { to: '/aem-fe-compare', label: 'AEM ↔ FE Compare' },
+  { to: '/fe-compare', label: 'FE ↔ FE Compare' },
 ] as const
 
 export function RootLayout() {

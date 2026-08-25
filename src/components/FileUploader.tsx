@@ -9,9 +9,10 @@ type InputMode = 'upload' | 'paste'
 interface FileUploaderProps {
   title: string
   onLoad: (data: Record<string, string>) => void
+  parser?: (raw: string) => Record<string, string>
 }
 
-export function FileUploader({ title, onLoad }: FileUploaderProps) {
+export function FileUploader({ title, onLoad, parser = parseJson }: FileUploaderProps) {
   const [mode, setMode] = useState<InputMode>('upload')
   const [pasteValue, setPasteValue] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +21,7 @@ export function FileUploader({ title, onLoad }: FileUploaderProps) {
   function handleLoad(raw: string) {
     setError(null)
     try {
-      const parsed = parseJson(raw)
+      const parsed = parser(raw)
       setLoadedCount(Object.keys(parsed).length)
       onLoad(parsed)
     } catch (e) {

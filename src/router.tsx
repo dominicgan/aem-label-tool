@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter } from '@tanstack/react-rout
 import { RootLayout } from './App'
 import { HomePage } from './pages/HomePage'
 import { ComparePage } from './pages/ComparePage'
+import { FeComparePage } from './pages/FeComparePage'
 
 const rootRoute = createRootRoute({ component: RootLayout })
 
@@ -17,7 +18,13 @@ const compareRoute = createRoute({
   component: ComparePage,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, compareRoute])
+const feCompareRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/fe-compare',
+  component: FeComparePage,
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, compareRoute, feCompareRoute])
 
 export const router = createRouter({ routeTree })
 
