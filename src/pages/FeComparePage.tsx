@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { FileUploader } from '@/components/FileUploader'
 
-type RowStatus = 'both' | 'left-only' | 'right-only'
-type ViewFilter = 'all' | 'missing-left' | 'missing-right'
+type RowStatus = 'match' | 'mismatch' | 'left-only' | 'right-only'
+type ViewFilter = 'all' | 'missing-left' | 'missing-right' | 'mismatch'
 type CopiedKey = string | null
 
 interface CompareRow {
@@ -23,8 +23,12 @@ function buildCompareRows(
     .map((key) => {
       const leftValue = leftData[key] ?? null
       const rightValue = rightData[key] ?? null
-      const status: RowStatus =
-        leftValue !== null && rightValue !== null ? 'both' : leftValue !== null ? 'left-only' : 'right-only'
+      let status: RowStatus
+      if (leftValue !== null && rightValue !== null) {
+        status = leftValue === rightValue ? 'match' : 'mismatch'
+      } else {
+        status = leftValue !== null ? 'left-only' : 'right-only'
+      }
       return { key, leftValue, rightValue, status }
     })
 }
@@ -33,6 +37,7 @@ const VIEW_OPTIONS: { value: ViewFilter; label: string }[] = [
   { value: 'all', label: 'Show all' },
   { value: 'missing-right', label: 'Missing in FE Data 2' },
   { value: 'missing-left', label: 'Missing in FE Data 1' },
+  { value: 'mismatch', label: 'Mismatched values' },
 ]
 
 export function FeComparePage() {
@@ -46,11 +51,13 @@ export function FeComparePage() {
   const filtered = rows.filter((row) => {
     if (view === 'missing-left') return row.status === 'right-only'
     if (view === 'missing-right') return row.status === 'left-only'
+    if (view === 'mismatch') return row.status === 'mismatch'
     return true
   })
 
   const missingInRight = rows.filter((r) => r.status === 'left-only').length
   const missingInLeft = rows.filter((r) => r.status === 'right-only').length
+  const mismatched = rows.filter((r) => r.status === 'mismatch').length
 
   async function copyToClipboard(text: string, cellId: string) {
     await navigator.clipboard.writeText(text)
@@ -64,7 +71,7 @@ export function FeComparePage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">FE ↔ FE Compare</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Upload two FE JSON files to see which keys are missing on each side.
+            Upload two FE JSON files to see which keys are missing or mismatched.
           </p>
         </div>
 
@@ -81,13 +88,18 @@ export function FeComparePage() {
                 {rows.length} total keys
               </span>
               {missingInRight > 0 && (
-                <span className="rounded-full bg-gray-200 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                <span className="rounded-full bg-blue-100 dark:bg-blue-900/40 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
                   {missingInRight} missing in FE 2
                 </span>
               )}
               {missingInLeft > 0 && (
                 <span className="rounded-full bg-red-100 dark:bg-red-900/40 px-3 py-1 text-xs font-medium text-red-700 dark:text-red-300">
                   {missingInLeft} missing in FE 1
+                </span>
+              )}
+              {mismatched > 0 && (
+                <span className="rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-3 py-1 text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                  {mismatched} mismatched
                 </span>
               )}
             </div>
@@ -172,9 +184,11 @@ interface FeCompareRowProps {
 function FeCompareRow({ row, copiedCell, onCopy }: FeCompareRowProps) {
   const rowClass =
     row.status === 'left-only'
-      ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+      ? 'bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700'
       : row.status === 'right-only'
-      ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40'
+      ? 'bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700'
+      : row.status === 'mismatch'
+      ? 'bg-yellow-200 dark:bg-yellow-700 hover:bg-yellow-300 dark:hover:bg-yellow-600'
       : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
 
   return (

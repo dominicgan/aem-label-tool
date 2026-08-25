@@ -3,8 +3,8 @@ import { Check } from 'lucide-react'
 import { FileUploader } from '@/components/FileUploader'
 import { parseAemJson } from '@/lib/parseJson'
 
-type RowStatus = 'both' | 'aem-only' | 'fe-only'
-type ViewFilter = 'all' | 'missing-aem' | 'missing-fe'
+type RowStatus = 'match' | 'mismatch' | 'aem-only' | 'fe-only'
+type ViewFilter = 'all' | 'missing-aem' | 'missing-fe' | 'mismatch'
 type CopiedKey = string | null
 
 interface CompareRow {
@@ -24,7 +24,12 @@ function buildCompareRows(
     .map((key) => {
       const aemValue = aemData[key] ?? null
       const feValue = feData[key] ?? null
-      const status: RowStatus = aemValue !== null && feValue !== null ? 'both' : aemValue !== null ? 'aem-only' : 'fe-only'
+      let status: RowStatus
+      if (aemValue !== null && feValue !== null) {
+        status = aemValue === feValue ? 'match' : 'mismatch'
+      } else {
+        status = aemValue !== null ? 'aem-only' : 'fe-only'
+      }
       return { key, aemValue, feValue, status }
     })
 }
@@ -33,6 +38,7 @@ const VIEW_OPTIONS: { value: ViewFilter; label: string }[] = [
   { value: 'all', label: 'Show all' },
   { value: 'missing-fe', label: 'Missing in FE data' },
   { value: 'missing-aem', label: 'Missing in AEM data' },
+  { value: 'mismatch', label: 'Mismatched values' },
 ]
 
 export function ComparePage() {
@@ -46,11 +52,13 @@ export function ComparePage() {
   const filtered = rows.filter((row) => {
     if (view === 'missing-aem') return row.status === 'fe-only'
     if (view === 'missing-fe') return row.status === 'aem-only'
+    if (view === 'mismatch') return row.status === 'mismatch'
     return true
   })
 
   const missingInFe = rows.filter((r) => r.status === 'aem-only').length
   const missingInAem = rows.filter((r) => r.status === 'fe-only').length
+  const mismatched = rows.filter((r) => r.status === 'mismatch').length
 
   async function copyToClipboard(text: string, cellId: string) {
     await navigator.clipboard.writeText(text)
@@ -64,7 +72,7 @@ export function ComparePage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">AEM ↔ FE Compare</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Upload both JSON files to see which keys are missing on each side.
+            Upload both JSON files to see which keys are missing or mismatched.
           </p>
         </div>
 
@@ -81,13 +89,18 @@ export function ComparePage() {
                 {rows.length} total keys
               </span>
               {missingInFe > 0 && (
-                <span className="rounded-full bg-gray-200 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                <span className="rounded-full bg-blue-100 dark:bg-blue-900/40 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
                   {missingInFe} missing in FE
                 </span>
               )}
               {missingInAem > 0 && (
                 <span className="rounded-full bg-red-100 dark:bg-red-900/40 px-3 py-1 text-xs font-medium text-red-700 dark:text-red-300">
                   {missingInAem} missing in AEM
+                </span>
+              )}
+              {mismatched > 0 && (
+                <span className="rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-3 py-1 text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                  {mismatched} mismatched
                 </span>
               )}
             </div>
@@ -172,9 +185,11 @@ interface CompareRowProps {
 function CompareRow({ row, copiedCell, onCopy }: CompareRowProps) {
   const rowClass =
     row.status === 'aem-only'
-      ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+      ? 'bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700'
       : row.status === 'fe-only'
-      ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40'
+      ? 'bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700'
+      : row.status === 'mismatch'
+      ? 'bg-yellow-200 dark:bg-yellow-700 hover:bg-yellow-300 dark:hover:bg-yellow-600'
       : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
 
   return (
